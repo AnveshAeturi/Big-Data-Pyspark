@@ -1,6 +1,4 @@
 import findspark
-from numpy import partition
-from sqlalchemy import Float
 findspark.init()
 
 import pyspark
@@ -70,12 +68,18 @@ def main():
     iris_df = iris_df.withColumn('rank_num', dense_rank().over(window_spec))
 
     iris_df = iris_df.withColumn('dqm', lit('DQM'))\
-        .withColumn('Created_Date', F.current_timestamp())\
-            .withColumn('Created_By', lit('Anvesh'))
+        .withColumn('Created_Date', F.current_date())\
+            .withColumn('Created_By', lit(os.getlogin()))
 
     # This will aviod the OutOfMemoryError if input data is too large
     iris_df = iris_df.persist(StorageLevel.MEMORY_AND_DISK)
     print(iris_df.rdd.getNumPartitions())
+
+    # Create column to check Null values in each row of the dataframe
+    iris_df = iris_df.withColumn('DataQuality', F.when(col('SepalLengthCm').isNull(), 'Bad_records')\
+        .when(col('SepalWidthCm').isNull(), 'Bad_records').when(col('PetalLengthCm').isNull(), 'Bad_records')\
+        .when(col('PetalWidthCm').isNull(), 'Bad_records').when(col('Species').isNull(), 'Bad_records')\
+        .otherwise('Good_reocrds')  )
 
     # Create a Temperary View Table to perfor SQL operations
     iris_df.createOrReplaceTempView('iris_tbl')
@@ -84,15 +88,23 @@ def main():
     spark.sql('SELECT * FROM iris_tbl limit 1').show()
     iris_df.show(5)
 
+    # Create a folder to store the output files
+    output_path = 'outputETL'
+    if not os.path.exists(output_path):
+        logging.info('Creating Output Folder')
+        os.makedirs(output_path)
+        
     #Writing to CSV
-    iris_df.coalesce(1).write.partitionBy('Species').mode('overwrite').csv('iris_output_csv')
+    iris_df.coalesce(1).write.csv(output_path + '/iris_output.csv', mode='overwrite', header=True)
+    iris_df.coalesce(1).write.partitionBy('Species').mode('overwrite').csv(output_path + '/iris_output_part.csv', header=True)
     logging.info('CSV Written Successfully')
     logging.info('')
 
     #Writing to Parquet
-    iris_df.coalesce(1).write.partitionBy('Species').mode('overwrite').parquet('iris_output_parquet')
+    iris_df.coalesce(1).write.partitionBy('Species').mode('overwrite').parquet(output_path + '/iris_output_parquet')
     logging.info('Parquet Written Successfully')
     logging.info('')
 
 if __name__ == "__main__":
     main()
+    logging.info('ETL Completed Successfully')
