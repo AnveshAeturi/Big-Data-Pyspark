@@ -1,0 +1,22 @@
+https://www.kaggle.com/datasets/jealousleopard/goodreadsbooks
+
+bookID
+A unique Identification number for each book.
+title
+The name under which the book was published.
+authors
+Names of the authors of the book. Multiple authors are delimited with -.
+average_rating
+The average rating of the book received in total.
+isbn
+Another unique number to identify the book, the International Standard Book Number.
+isbn13
+A 13-digit ISBN to identify the book, instead of the standard 11-digit ISBN.
+language_code
+Helps understand what is the primary language of the book. For instance, eng is standard for English.
+num_pages
+Number of pages the book contains.
+ratings_count
+Total number of ratings the book received.
+text_reviews_count
+Total number of written text reviews the book received.
